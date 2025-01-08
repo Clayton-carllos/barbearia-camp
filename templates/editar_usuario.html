@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Usuário</title>
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Editar Usuário</h2>
+
+        <!-- Formulário de edição -->
+        <form method="POST">
+            <label for="username">Nome de Usuário:</label>
+            <input type="text" name="username" id="username" value="{{ usuario.username }}" required><br><br>
+
+            <label for="senha">Senha:</label>
+            <input type="password" name="senha" id="senha" required><br><br>
+
+            <button type="submit">Salvar alterações</button>
+        </form>
+    </div>
+</body>
+</html>

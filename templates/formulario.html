@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendamento de Corte</title>
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+
+    <form action="/agendar" method="POST">
+        <h2>Agende Seu Horario</h2>
+
+        <label for="nome">Nome</label>
+        <input type="text" id="nome" name="nome" placeholder="Seu Nome" required>
+
+        <label for="telefone">Telefone</label>
+        <input type="tel" id="telefone" name="telefone" placeholder="(XX) XXXXX-XXXX" required>
+
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="seu email" required>
+
+        <label for="data">Data</label>
+        <input type="date" id="data" name="data" required min="{{ today_date }}">
+
+        <label for="horario">Horário</label>
+        <select id="horario" name="horario" required>
+            <option value="">Escolha o Horário</option>
+            <option value="08:00" class="horario-disponivel">08:00</option>
+            <option value="09:00" class="horario-disponivel">09:00</option>
+            <option value="10:00" class="horario-disponivel">10:00</option>
+            <option value="11:00" class="horario-disponivel">11:00</option>
+            <option value="12:00" class="horario-disponivel">12:00</option>
+            <option value="14:00" class="horario-disponivel">14:00</option>
+            <option value="15:00" class="horario-disponivel">15:00</option>
+            <option value="16:00" class="horario-disponivel">16:00</option>
+            <option value="17:00" class="horario-disponivel">17:00</option>
+            <option value="18:00" class="horario-disponivel">18:00</option>
+            <option value="19:00" class="horario-disponivel">19:00</option>
+            <option value="20:00" class="horario-disponivel">20:00</option>
+            <option value="21:00" class="horario-disponivel">21:00</option>
+        </select>
+
+        <label for="mensagem">Corte</label>
+        <select name="mensagem" id="mensagem" required>
+          <option value="">Escolha seu corte</option>
+          <option value="Corte simples" class="corte">Corte simples</option>
+          <option value="Corte + Sobrancelha" class="corte">Corte + Sobrancelha</option>
+          <option value="Corte + Sobrancelha + Barba" class="corte">Corte + Sobrancelha + Barba</option>
+          <option value="Corte + Luzes " class="corte">Corte + Luzes</option>
+          <option value="Corte + Luzes + Sobrancelha" class="corte">Corte + Luzes + Sobrancelha</option>
+          <option value="Corte + Platinado" class="corte">Corte + Platinado</option>
+        </select>
+
+        <button type="submit">Agendar Horario</button>
+    </form>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+    const dataInput = document.querySelector('#data');  // Campo de data
+    const horarioSelect = document.querySelector('#horario');  // Campo de horário
+
+    // Definindo data mínima para não permitir datas passadas
+    const today = new Date().toISOString().split('T')[0]; // Pega a data de hoje no formato YYYY-MM-DD
+    dataInput.setAttribute('min', today);
+
+    // Lógica para habilitar/desabilitar horários
+    dataInput.addEventListener('change', function () {
+        const dataSelecionada = dataInput.value;
+
+        if (dataSelecionada) {
+            // Verifica horários indisponíveis via fetch
+            fetch(`/horarios_indisponiveis?data=${dataSelecionada}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error(data.error);
+                        return;
+                    }
+
+                    // Reseta os horários antes de atualizar
+                    Array.from(horarioSelect.options).forEach(option => {
+                        option.disabled = false;  // Habilita novamente todos os horários
+                        option.classList.add("horario-disponivel");  // Adiciona a classe de disponível
+                        option.classList.remove("horario-indisponivel");  // Remove a classe de indisponível
+                    });
+
+                    // Desabilita os horários ocupados
+                    data.horarios_indisponiveis.forEach(horario => {
+                        const option = Array.from(horarioSelect.options).find(opt => opt.value === horario);
+                        if (option) {
+                            option.disabled = true;  // Desabilita o horário
+                            option.classList.remove("horario-disponivel");  // Remove a classe de disponível
+                            option.classList.add("horario-indisponivel");  // Adiciona a classe de indisponível
+                        }
+                    });
+
+                    // Desabilitar horários passados no dia atual
+                    if (dataSelecionada === today) {
+                        const currentDate = new Date();
+                        const currentHour = currentDate.getHours();
+                        const currentMinutes = currentDate.getMinutes();
+
+                        Array.from(horarioSelect.options).forEach(option => {
+                            const [hour, minute] = option.value.split(':').map(Number);
+                            if (hour < currentHour || (hour === currentHour && minute <= currentMinutes)) {
+                                option.disabled = true;
+                                option.classList.remove("horario-disponivel");
+                                option.classList.add("horario-indisponivel");
+                            }
+                        });
+                    }
+                })
+                .catch(error => console.error('Erro ao buscar horários:', error));
+        }
+    });
+});
+
+
+  // Desabilitar horários passados no mesmo dia (agora considerando minutos também)
+  const currentDate = new Date();
+  const currentHour = currentDate.getHours();
+  const currentMinutes = currentDate.getMinutes();
+
+  Array.from(horarioSelect.options).forEach(option => {
+    const [hour, minute] = option.value.split(':').map(Number);  // Converte hora e minuto
+    if (hour < currentHour || (hour === currentHour && minute <= currentMinutes)) {
+      option.disabled = true;  // Desabilita se o horário já passou
+    }
+  });
+
+    </script>     
+
+</body>
+</html>
