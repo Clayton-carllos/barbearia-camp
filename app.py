@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import extract
-from sqlalchemy import Time
+from sqlalchemy.sql import text
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError
@@ -224,11 +224,11 @@ def home():
     # Pega a data e hora atuais
     agora = datetime.now()
     
-    # Agendamentos futuros
-    agendamentos_futuros = Agendamento.query.filter(
+    # Agendamentos futuros com a correção na consulta
+    agendamentos_futuros = db.session.query(Agendamento).filter(
         (Agendamento.data > agora.date()) | 
-        ((Agendamento.data == agora.date()) & (Agendamento.horario > agora.time()))
-    ).all()
+        ((Agendamento.data == agora.date()) & (text("CAST(horario AS TIME) > :hora")))
+    ).params(hora=agora.strftime('%H:%M')).all()
     
     # Definir o início e o fim da semana (de segunda a domingo)
     inicio_semana = agora - timedelta(days=agora.weekday())  # Começa na segunda-feira
