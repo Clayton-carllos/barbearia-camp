@@ -9,6 +9,8 @@ import csv
 from io import StringIO
 from flask import Response
 from flask_migrate import Migrate
+from sqlalchemy import cast, Time
+
 
 
 app = Flask(__name__)
@@ -210,6 +212,7 @@ def lista_agendamentos():
     return render_template('lista_agendamentos.html', agendamentos=agendamentos, nome_usuario=nome_usuario)
 
 # Rota para exibir a Home
+
 @app.route('/home')
 def home():
     if 'usuario_id' not in session:
@@ -224,12 +227,12 @@ def home():
     # Pega a data e hora atuais
     agora = datetime.now()
     
-    # Agendamentos futuros com a correção na consulta
+   # Agendamentos futuros (contando)
     agendamentos_futuros = db.session.query(Agendamento).filter(
-        (Agendamento.data > agora.date()) | 
-        ((Agendamento.data == agora.date()) & (text("CAST(horario AS TIME) > :hora")))
-    ).params(hora=agora.strftime('%H:%M')).all()
-    
+    (Agendamento.data > agora.date()) | 
+    ((Agendamento.data == agora.date()) & (Agendamento.horario > agora.strftime('%H:%M')))
+).count()
+
     # Definir o início e o fim da semana (de segunda a domingo)
     inicio_semana = agora - timedelta(days=agora.weekday())  # Começa na segunda-feira
     fim_semana = inicio_semana + timedelta(days=6)  # Termina no domingo
@@ -256,7 +259,7 @@ def home():
         Agendamento.query
         .filter(
             (Agendamento.data > agora.date()) | 
-            ((Agendamento.data == agora.date()) & (Agendamento.horario > agora.time()))
+            ((Agendamento.data == agora.date()) & (Agendamento.horario > agora.strftime('%H:%M')))
         )
         .order_by(Agendamento.data, Agendamento.horario)
         .limit(3)
@@ -272,6 +275,7 @@ def home():
         agendamentos_mes=agendamentos_mes,
         proximos_agendamentos=proximos_agendamentos
     )
+
 
 
 # Rota para deletar um agendamento
