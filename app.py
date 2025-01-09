@@ -7,15 +7,17 @@ from sqlalchemy.exc import IntegrityError
 import csv
 from io import StringIO
 from flask import Response
+from flask_migrate import Migrate
 
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Necessário para usar flash()
 
 # Configuração do banco de dados
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///agendamentos.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://agendamentos_db_cbsl_user:al4jVarr1TMQwCQPhJyTRLGScquVmkQa@dpg-ctvu5n0gph6c73cgbcdg-a.virginia-postgres.render.com/agendamentos_db_cbsl'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 # Modelo do banco de dados para agendamentos
 class Agendamento(db.Model):
@@ -32,6 +34,22 @@ class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), nullable=False, unique=True)
     senha = db.Column(db.String(200), nullable=False)
+
+# Criar o banco de dados e verificar se o admin existe
+with app.app_context():
+    db.create_all()  # Certifica-se de que as tabelas existem no banco de dados
+
+    # Verifica se já existe um usuário "admin"
+    admin = Usuario.query.filter_by(username='admin').first()
+    if not admin:
+        # Criação do usuário admin caso não exista
+        senha_hash = generate_password_hash('admin123')  # Senha padrão para o admin
+        usuario_admin = Usuario(username='admin', senha=senha_hash)
+        db.session.add(usuario_admin)
+        db.session.commit()
+        print('Usuário admin criado com sucesso!')
+    else:
+        print('Usuário admin já existe.')
 
 # Rota para exibir o formulário de agendamento
 @app.route('/')
@@ -65,6 +83,7 @@ def agendar():
 # Rota para exibir o formulário de adicionar usuário
 @app.route('/adicionar_usuario', methods=['GET', 'POST'])
 def adicionar_usuario():
+    
     if 'usuario_id' not in session:
         flash('Você precisa estar logado para adicionar um usuário.', 'warning')
         return redirect(url_for('login'))
