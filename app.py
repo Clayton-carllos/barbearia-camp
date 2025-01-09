@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import extract
+from sqlalchemy import Time
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError
@@ -226,8 +227,8 @@ def home():
     # Agendamentos futuros
     agendamentos_futuros = Agendamento.query.filter(
         (Agendamento.data > agora.date()) | 
-        ((Agendamento.data == agora.date()) & (datetime.strptime(Agendamento.horario, '%H:%M').time() > agora.time()))
-).count()
+        ((Agendamento.data == agora.date()) & (Agendamento.horario > agora.time()))
+    ).all()
     
     # Definir o início e o fim da semana (de segunda a domingo)
     inicio_semana = agora - timedelta(days=agora.weekday())  # Começa na segunda-feira
@@ -246,19 +247,21 @@ def home():
 
     # Contagem de agendamentos no mês
     mes_atual = agora.month
-    agendamentos_mes = Agendamento.query.filter(extract('month', Agendamento.data) == mes_atual).count()
+    agendamentos_mes = Agendamento.query.filter(
+        extract('month', Agendamento.data) == mes_atual
+    ).count()
     
     # Pega os 3 próximos agendamentos
     proximos_agendamentos = (
-    Agendamento.query
-    .filter(
-        (Agendamento.data > datetime.today().date()) | 
-        ((Agendamento.data == datetime.today().date()) & (Agendamento.horario > datetime.now().time()))
+        Agendamento.query
+        .filter(
+            (Agendamento.data > agora.date()) | 
+            ((Agendamento.data == agora.date()) & (Agendamento.horario > agora.time()))
+        )
+        .order_by(Agendamento.data, Agendamento.horario)
+        .limit(3)
+        .all()
     )
-    .order_by(Agendamento.data, Agendamento.horario)
-    .limit(3)
-    .all()
-)
 
     return render_template(
         'home.html', 
